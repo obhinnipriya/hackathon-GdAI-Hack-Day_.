@@ -85,8 +85,8 @@ FundMatch is an internal grant research and writing tool built specifically for 
 
 **1. Clone the repo**
 ```
-git clone https://github.com/obhinnipriya/hackathon-G-AI-.git
-cd hackathon-G-AI-
+git clone https://github.com/obhinnipriya/hackathon-GdAI-Hack-Day_.git
+cd hackathon-GdAI-Hack-Day_.
 ```
 
 **2. Install dependencies**
