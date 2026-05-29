@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Pipeline{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-7">
+  <div>
+    <h1 class="text-2xl font-bold text-navy-700 tracking-tight flex items-center gap-2">
+      <i class="ph-bold ph-kanban text-teal"></i> Grant Pipeline
+    </h1>
+    <p class="text-slate-500 text-sm mt-1">Drag grants across stages to track progress. Wins and losses train the scoring engine.</p>
+  </div>
+  <div class="flex items-center gap-2 text-sm text-slate-500">
+    <i class="ph ph-info text-slate-300"></i>
+    <span>Drag cards between columns to update stage</span>
+  </div>
+</div>
+
+{% set stage_config = [
+  ('discovered',  'Discovered',  'ph-sparkle',      'bg-slate-50  border-slate-200', 'bg-slate-100  text-slate-600',  'border-slate-300'),
+  ('shortlisted', 'Shortlisted', 'ph-star',         'bg-blue-50   border-blue-200',  'bg-blue-100   text-blue-700',   'border-blue-300'),
+  ('drafting',    'Drafting',    'ph-pencil-line',  'bg-teal-50   border-teal-200',  'bg-teal-100   text-teal-700',   'border-teal-300'),
+  ('submitted',   'Submitted',   'ph-paper-plane-tilt','bg-purple-50 border-purple-200','bg-purple-100 text-purple-700','border-purple-300'),
+  ('won',         'Won',         'ph-trophy',       'bg-green-50  border-green-200', 'bg-green-100  text-green-700',  'border-green-300'),
+  ('lost',        'Lost',        'ph-x-circle',     'bg-red-50    border-red-200',   'bg-red-100    text-red-600',    'border-red-300'),
+] %}
+
+<div class="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]" id="kanban-board">
+
+  {% for stage_id, stage_label, stage_icon, col_bg, badge_cls, drop_border in stage_config %}
+  {% set cards = stages.get(stage_id, []) %}
+
+  <div class="flex-shrink-0 w-64" data-stage="{{ stage_id }}">
+
+    <!-- Column header -->
+    <div class="flex items-center justify-between mb-3 px-1">
+      <div class="flex items-center gap-2">
+        <i class="ph-bold {{ stage_icon }} text-slate-500 text-sm"></i>
+        <span class="font-bold text-navy-700 text-sm">{{ stage_label }}</span>
+      </div>
+      <span class="badge {{ badge_cls }} text-xs">{{ cards|length }}</span>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="kanban-column min-h-[60vh] rounded-2xl border-2 border-dashed {{ drop_border }} {{ col_bg }} p-2 space-y-2.5 transition-all duration-200"
+         data-stage="{{ stage_id }}"
+         ondragover="event.preventDefault(); this.classList.add('ring-2','ring-teal','ring-offset-1')"
+         ondragleave="this.classList.remove('ring-2','ring-teal','ring-offset-1')"
+         ondrop="handleDrop(event, '{{ stage_id }}')">
+
+      {% for g in cards %}
+      <!-- Grant card -->
+      <div class="kanban-card bg-white rounded-xl border border-slate-100 p-3.5 shadow-sm cursor-grab active:cursor-grabbing select-none
+                  hover:shadow-md hover:-translate-y-0.5 transition-all duration-150"
+           draggable="true"
+           data-grant-id="{{ g.id }}"
+           ondragstart="handleDragStart(event, {{ g.id }})">
+
+        <!-- Score badge -->
+        <div class="flex items-center justify-between mb-2">
+          <span class="badge text-xs font-bold
+            {% if g.fit_band == 'green' %}bg-green-100 text-green-800
+            {% elif g.fit_band == 'yellow' %}bg-amber-100 text-amber-700
+            {% else %}bg-slate-100 text-slate-500{% endif %}">
+            {% if g.fit_band == 'green' %}<i class="ph-bold ph-check text-[10px]"></i>{% endif %}
+            {{ g.fit_score }}
+          </span>
+          <a href="/grant/{{ g.id }}" onclick="event.stopPropagation()"
+             class="text-slate-300 hover:text-teal transition-colors text-xs">
+            <i class="ph ph-arrow-square-out"></i>
+          </a>
+        </div>
+
+        <!-- Title -->
+        <div class="font-semibold text-navy-700 text-[12px] leading-snug mb-1">
+          {{ g.title[:55] }}{% if g.title|length > 55 %}…{% endif %}
+        </div>
+        <div class="text-[11px] text-slate-400 mb-2.5 flex items-center gap-1">
+          <i class="ph ph-buildings text-[10px]"></i>
+          {{ g.funder[:35] }}{% if g.funder|length > 35 %}…{% endif %}
+        </div>
+
+        <!-- Meta -->
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="text-slate-400 flex items-center gap-1">
+            <i class="ph ph-calendar text-[10px]"></i>
+            {% if g.deadline and g.deadline not in ['ongoing','rolling',''] %}
+              <span class="deadline-badge" data-deadline="{{ g.deadline }}">{{ g.deadline }}</span>
+            {% else %}
+              Ongoing
+            {% endif %}
+          </span>
+          {% if g.amount_max %}
+          <span class="font-semibold text-slate-600">${{ '{:,}'.format(g.amount_max) }}</span>
+          {% endif %}
+        </div>
+
+        {% if stage_id in ['discovered', 'shortlisted'] %}
+        <div class="mt-2.5 pt-2.5 border-t border-slate-100">
+          <a href="/draft/{{ g.id }}"
+             class="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-teal hover:text-teal-600 transition-colors">
+            <i class="ph ph-pencil-line"></i> Generate Draft
+          </a>
+        </div>
+        {% endif %}
+
+        {% if stage_id == 'won' %}
+        <div class="mt-2 text-center text-lg">🏆</div>
+        {% elif stage_id == 'lost' %}
+        <div class="mt-2 text-center text-xs text-slate-400 italic">Improving scoring model…</div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+
+      <!-- Empty state -->
+      {% if not cards %}
+      <div class="flex flex-col items-center justify-center py-12 text-center opacity-40">
+        <i class="ph {{ stage_icon }} text-3xl text-slate-300 mb-2"></i>
+        <p class="text-xs text-slate-400">Drop grants here</p>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="fixed bottom-6 right-6 bg-navy-700 text-white px-5 py-3 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2
+                        opacity-0 translate-y-2 transition-all duration-300 pointer-events-none">
+  <i class="ph-bold ph-check-circle text-teal"></i>
+  <span id="toast-msg">Stage updated</span>
+</div>
+
+<script>
+let draggedGrantId = null;
+
+function handleDragStart(event, grantId) {
+  draggedGrantId = grantId;
+  event.dataTransfer.effectAllowed = 'move';
+  event.currentTarget.style.opacity = '0.5';
+}
+
+document.querySelectorAll('.kanban-card').forEach(card => {
+  card.addEventListener('dragend', () => { card.style.opacity = '1'; });
+});
+
+function handleDrop(event, newStage) {
+  event.preventDefault();
+  const col = event.currentTarget;
+  col.classList.remove('ring-2', 'ring-teal', 'ring-offset-1');
+
+  if (!draggedGrantId) return;
+
+  fetch('/pipeline/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ grant_id: draggedGrantId, stage: newStage }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      showToast('Grant moved to ' + newStage.charAt(0).toUpperCase() + newStage.slice(1));
+      setTimeout(() => location.reload(), 800);
+    }
+  })
+  .catch(() => showToast('Error updating stage', true));
+}
+
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toast-msg');
+  toastMsg.textContent = msg;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateY(0)';
+  if (isError) toast.style.background = '#DC2626';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+    toast.style.background = '';
+  }, 2500);
+}
+
+// Deadline countdown colouring
+document.querySelectorAll('.deadline-badge').forEach(el => {
+  const dl = el.dataset.deadline;
+  if (!dl) return;
+  try {
+    const days = Math.ceil((new Date(dl) - new Date()) / 86400000);
+    if (days < 0) {
+      el.textContent = 'Closed';
+      el.style.color = '#94A3B8';
+    } else if (days <= 7) {
+      el.textContent = days + 'd left';
+      el.style.color = '#DC2626';
+      el.style.fontWeight = '700';
+    } else if (days <= 30) {
+      el.textContent = days + 'd left';
+      el.style.color = '#D97706';
+      el.style.fontWeight = '600';
+    } else {
+      el.textContent = days + 'd left';
+    }
+  } catch(e) {}
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Prospects{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-7">
+  <div>
+    <h1 class="text-2xl font-bold text-navy-700 tracking-tight">Scored Prospects</h1>
+    <p class="text-slate-500 text-sm mt-1">Every grant is cross-referenced against the Mary's House profile across 5 dimensions.</p>
+  </div>
+  <div class="flex items-center gap-3 text-sm">
+    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span><span class="text-slate-600 font-medium">≥70 Escalate</span></div>
+    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span><span class="text-slate-600 font-medium">40–69 Monitor</span></div>
+    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span><span class="text-slate-600 font-medium">&lt;40 Archive</span></div>
+    <div class="ml-2 badge bg-slate-100 text-slate-500">{{ total }} total</div>
+  </div>
+</div>
+
+{% macro grant_table(grants, band) %}
+<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="bg-slate-50 border-b border-slate-100">
+        <th class="text-left px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Grant / Funder</th>
+        <th class="text-right px-4 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Max Amount</th>
+        <th class="text-left px-4 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Deadline</th>
+        <th class="text-center px-4 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Fit Score</th>
+        <th class="text-right px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-50">
+      {% for g in grants %}
+      <tr class="row-hover">
+        <td class="px-5 py-3.5">
+          <div class="font-semibold text-navy-700 text-[13px] leading-snug">{{ g.title[:55] }}{% if g.title|length > 55 %}…{% endif %}</div>
+          <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+            <i class="ph ph-buildings text-[11px]"></i> {{ g.funder }}
+          </div>
+        </td>
+        <td class="px-4 py-3.5 text-right">
+          {% if g.amount_max %}
+          <span class="font-semibold text-slate-700">${{ '{:,}'.format(g.amount_max) }}</span>
+          {% else %}<span class="text-slate-300">—</span>{% endif %}
+        </td>
+        <td class="px-4 py-3.5">
+          {% if g.deadline and g.deadline not in ['ongoing', 'rolling', ''] %}
+          <span class="text-slate-600 text-[13px]">{{ g.deadline }}</span>
+          {% else %}
+          <span class="badge bg-slate-100 text-slate-400 border border-slate-200">
+            <i class="ph ph-infinity text-[10px]"></i> Ongoing
+          </span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3.5 text-center">
+          <span class="badge font-bold text-xs
+            {% if g.fit_band == 'green' %}bg-green-100 text-green-800
+            {% elif g.fit_band == 'yellow' %}bg-amber-100 text-amber-700
+            {% else %}bg-slate-100 text-slate-400{% endif %}">
+            {% if g.fit_band == 'green' %}<i class="ph-bold ph-check text-[10px]"></i>{% endif %}
+            {{ g.fit_score }}
+          </span>
+        </td>
+        <td class="px-5 py-3.5 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <a href="/grant/{{ g.id }}"
+               class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-teal hover:text-teal font-medium transition-all duration-150">
+              View
+            </a>
+            {% if g.fit_band in ['green', 'yellow'] %}
+            <a href="/draft/{{ g.id }}"
+               class="text-xs px-3 py-1.5 rounded-lg bg-teal text-white hover:bg-teal-600 font-semibold transition-all duration-150 flex items-center gap-1">
+              <i class="ph-bold ph-pencil-line text-[11px]"></i> Draft
+            </a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+<!-- Green -->
+{% if green %}
+<div class="mb-6 animate-slide-up">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+    <h2 class="font-bold text-green-800 text-sm uppercase tracking-wide">Escalate to Staff</h2>
+    <span class="badge bg-green-100 text-green-700">{{ green|length }}</span>
+  </div>
+  {{ grant_table(green, 'green') }}
+</div>
+{% endif %}
+
+<!-- Yellow -->
+{% if yellow %}
+<div class="mb-6 animate-slide-up" style="animation-delay:0.05s">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+    <h2 class="font-bold text-amber-700 text-sm uppercase tracking-wide">Monitoring</h2>
+    <span class="badge bg-amber-100 text-amber-700">{{ yellow|length }}</span>
+  </div>
+  {{ grant_table(yellow, 'yellow') }}
+</div>
+{% endif %}
+
+<!-- Grey -->
+{% if grey %}
+<div class="mb-6">
+  <details class="group">
+    <summary class="flex items-center gap-2 mb-3 cursor-pointer list-none select-none">
+      <span class="w-3 h-3 rounded-full bg-slate-300 inline-block"></span>
+      <h2 class="font-bold text-slate-400 text-sm uppercase tracking-wide">Auto-Archived</h2>
+      <span class="badge bg-slate-100 text-slate-400">{{ grey|length }}</span>
+      <i class="ph ph-caret-down text-slate-400 ml-1 group-open:rotate-180 transition-transform duration-150"></i>
+    </summary>
+    <div class="mt-1">{{ grant_table(grey, 'grey') }}</div>
+  </details>
+</div>
+{% endif %}
+
+{% if not green and not yellow and not grey %}
+<div class="bg-white rounded-2xl border border-slate-100 p-16 text-center shadow-sm">
+  <i class="ph ph-magnifying-glass text-5xl text-slate-200 block mb-3"></i>
+  <div class="font-semibold text-slate-400 mb-1">No grants found yet</div>
+  <a href="/search" class="text-teal text-sm font-semibold hover:underline">Run a search to discover prospects →</a>
+</div>
+{% endif %}
+
+{% endblock %}

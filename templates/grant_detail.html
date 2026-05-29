@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}{{ grant.title[:40] }}{% endblock %}
+{% block content %}
+
+<div class="mb-5">
+  <a href="/grants" class="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-teal font-medium transition-colors">
+    <i class="ph ph-arrow-left"></i> Back to Prospects
+  </a>
+</div>
+
+<div class="grid grid-cols-3 gap-6">
+
+  <!-- Main content -->
+  <div class="col-span-2 space-y-5">
+
+    <!-- Header card -->
+    <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="badge bg-teal/10 text-teal-600 border border-teal/20">
+              <i class="ph ph-buildings text-[10px]"></i> {{ grant.funder[:50] }}
+            </span>
+            <span class="badge {% if grant.source == 'seed' %}bg-blue-50 text-blue-700{% else %}bg-green-50 text-green-700{% endif %}">
+              {{ 'Curated' if grant.source == 'seed' else 'Live' }}
+            </span>
+          </div>
+          <h1 class="text-xl font-bold text-navy-700 leading-snug">{{ grant.title }}</h1>
+          {% if grant.source_url %}
+          <a href="{{ grant.source_url }}" target="_blank"
+             class="inline-flex items-center gap-1 text-xs text-teal hover:text-teal-600 font-medium mt-2 transition-colors">
+            <i class="ph ph-arrow-square-out"></i> View on funder website
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Score circle -->
+        <div class="shrink-0 text-center">
+          <div class="w-24 h-24 rounded-2xl flex flex-col items-center justify-center border-2 shadow-sm
+            {% if grant.fit_band == 'green' %}bg-green-50 border-green-200
+            {% elif grant.fit_band == 'yellow' %}bg-amber-50 border-amber-200
+            {% else %}bg-slate-50 border-slate-200{% endif %}">
+            <div class="text-3xl font-bold
+              {% if grant.fit_band == 'green' %}text-green-700
+              {% elif grant.fit_band == 'yellow' %}text-amber-600
+              {% else %}text-slate-400{% endif %}">{{ grant.fit_score }}</div>
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">/ 100</div>
+          </div>
+          <div class="mt-1.5 text-xs font-semibold
+            {% if grant.fit_band == 'green' %}text-green-700
+            {% elif grant.fit_band == 'yellow' %}text-amber-600
+            {% else %}text-slate-400{% endif %}">
+            {% if grant.fit_band == 'green' %}↑ Escalate to staff
+            {% elif grant.fit_band == 'yellow' %}Monitor
+            {% else %}Auto-archive{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick stats -->
+      <div class="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-100">
+        <div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+            <i class="ph ph-currency-dollar text-teal text-xs"></i> Amount
+          </div>
+          <div class="font-bold text-navy-700">
+            {% if grant.amount_min and grant.amount_max and grant.amount_min != grant.amount_max %}
+              ${{ '{:,}'.format(grant.amount_min) }}–${{ '{:,}'.format(grant.amount_max) }}
+            {% elif grant.amount_max %}
+              Up to ${{ '{:,}'.format(grant.amount_max) }}
+            {% else %}See funder{% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+            <i class="ph ph-calendar text-teal text-xs"></i> Deadline
+          </div>
+          <div class="font-bold text-navy-700">
+            {{ grant.deadline if grant.deadline and grant.deadline not in ['ongoing', 'rolling', ''] else 'Ongoing' }}
+          </div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+            <i class="ph ph-map-pin text-teal text-xs"></i> Geography
+          </div>
+          <div class="font-bold text-navy-700 text-sm">{{ grant.geography or '—' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <h2 class="font-bold text-navy-700 mb-3 flex items-center gap-2">
+        <i class="ph ph-info text-teal"></i> About this Grant
+      </h2>
+      <p class="text-sm text-slate-600 leading-relaxed">{{ grant.description }}</p>
+      {% if grant.eligibility %}
+      <div class="mt-4 pt-4 border-t border-slate-100">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Eligibility</div>
+        <p class="text-sm text-slate-600">{{ grant.eligibility }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Eligibility checklist -->
+    <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <h2 class="font-bold text-navy-700 mb-4 flex items-center gap-2">
+        <i class="ph ph-check-square text-teal"></i> Eligibility Checklist
+      </h2>
+      <div class="space-y-2.5">
+        {% for label, checked in [
+          ("Mary's House is an ACNC-registered Public Benevolent Institution", true),
+          ("Mary's House is based in South Australia", true),
+          ("Programs directly address domestic and family violence", true),
+          ("Organisation size is within the eligible range", true),
+          ("Application can be prepared within the timeline", grant.fit_band in ['green', 'yellow']),
+          ("Grant funds the types of activities Mary's House delivers", grant.fit_band == 'green'),
+        ] %}
+        <div class="flex items-start gap-3 px-4 py-3 rounded-xl border transition-colors duration-150
+          {% if checked %}bg-green-50 border-green-100 hover:border-green-200
+          {% else %}bg-slate-50 border-slate-100 hover:border-slate-200{% endif %}">
+          <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5
+            {% if checked %}bg-green-500{% else %}bg-slate-300{% endif %}">
+            {% if checked %}
+            <i class="ph-bold ph-check text-white text-[10px]"></i>
+            {% else %}
+            <i class="ph ph-question text-white text-[10px]"></i>
+            {% endif %}
+          </div>
+          <span class="text-sm {% if checked %}text-green-800 font-medium{% else %}text-slate-400{% endif %}">
+            {{ label }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sidebar -->
+  <div class="space-y-5">
+
+    <!-- Score breakdown -->
+    <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+      <h3 class="font-bold text-navy-700 text-sm mb-4 flex items-center gap-2">
+        <i class="ph ph-chart-bar text-teal"></i> Score Breakdown
+      </h3>
+      {% if scoring.breakdown %}
+        {% for dim, data in scoring.breakdown.items() %}
+        <div class="mb-4 last:mb-0">
+          <div class="flex justify-between text-xs mb-1.5">
+            <span class="text-slate-500 font-medium capitalize">{{ dim.replace('_', ' ') }}</span>
+            <span class="font-bold text-navy-700">{{ data.score }}<span class="text-slate-300">/{{ data.max }}</span></span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-1.5">
+            <div class="h-1.5 rounded-full transition-all duration-500
+              {% if (data.score / data.max) >= 0.7 %}bg-teal
+              {% elif (data.score / data.max) >= 0.4 %}bg-amber-400
+              {% else %}bg-slate-300{% endif %}"
+              style="width: {{ [data.score / data.max * 100, 100]|min|int }}%">
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1 leading-snug">{{ data.note }}</p>
+        </div>
+        {% endfor %}
+      {% else %}
+      <p class="text-sm text-slate-400">Score details not available.</p>
+      {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+      <h3 class="font-bold text-navy-700 text-sm mb-4">Actions</h3>
+      <div class="space-y-2.5">
+        <a href="/draft/{{ grant.id }}"
+           class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-teal text-white font-bold text-sm hover:bg-teal-600 transition-all duration-150 shadow-sm hover:shadow-md">
+          <i class="ph-bold ph-pencil-line"></i> Generate Application Draft
+        </a>
+        {% if grant.source_url %}
+        <a href="{{ grant.source_url }}" target="_blank"
+           class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:border-teal hover:text-teal transition-all duration-150">
+          <i class="ph ph-arrow-square-out"></i> View Funder Website
+        </a>
+        {% endif %}
+        <a href="/grants"
+           class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:border-slate-300 transition-all duration-150">
+          <i class="ph ph-arrow-left"></i> All Prospects
+        </a>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-3 text-center flex items-center justify-center gap-1">
+        <i class="ph ph-warning text-amber-400"></i>
+        Human sign-off required before submission
+      </p>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

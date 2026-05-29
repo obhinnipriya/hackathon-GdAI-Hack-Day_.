@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FundMatch{% endblock %} — Mary's House</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            navy:  { DEFAULT: '#1B2B3B', 50: '#EEF2F7', 100: '#D5E0EB', 700: '#1B2B3B', 800: '#142030', 900: '#0D1520' },
+            teal:  { DEFAULT: '#00A99D', 50: '#E0F7F5', 100: '#B3EDE8', 400: '#1FBFB3', 500: '#00A99D', 600: '#008F84', 700: '#006E65' },
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.4s ease-out',
+            'slide-up': 'slideUp 0.35s ease-out',
+            'pulse-dot': 'pulseDot 2s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeIn:   { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp:  { '0%': { opacity: '0', transform: 'translateY(12px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            pulseDot: { '0%,100%': { transform: 'scale(1)', opacity: '1' }, '50%': { transform: 'scale(1.4)', opacity: '0.7' } },
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F0F4F8; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+
+    .nav-link { position: relative; }
+    .nav-link.active::after {
+      content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
+      height: 2px; background: #00A99D; border-radius: 1px;
+    }
+
+    .card-hover { transition: box-shadow 0.2s ease, transform 0.2s ease; }
+    .card-hover:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.10); transform: translateY(-1px); }
+
+    tr.row-hover { transition: background 0.15s ease; }
+    tr.row-hover:hover { background: #F8FBFF; }
+
+    .page-content { animation: fadeIn 0.35s ease-out; }
+
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.02em; }
+
+    @media print {
+      nav, footer, .no-print { display: none !important; }
+      body { background: white; }
+      .shadow-sm { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top navigation -->
+  <nav class="bg-navy-700 shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
+
+      <!-- Left: Mary's House logo -->
+      <a href="/" class="shrink-0 opacity-95 hover:opacity-100 transition-opacity">
+        <img src="{{ url_for('static', filename='mhs-logo-white.svg') }}"
+             alt="Mary's House Services"
+             class="h-10 w-auto">
+      </a>
+
+      <!-- Centre: Nav links -->
+      <div class="flex items-center gap-1">
+        {% set pages = [
+          ('/', 'Dashboard', 'ph-squares-four'),
+          ('/knowledge', 'Knowledge', 'ph-brain'),
+          ('/search', 'Search', 'ph-magnifying-glass'),
+          ('/grants', 'Prospects', 'ph-chart-bar'),
+          ('/signals', 'Signals', 'ph-broadcast'),
+          ('/pipeline', 'Pipeline', 'ph-kanban'),
+        ] %}
+        {% for href, label, icon in pages %}
+        <a href="{{ href }}"
+           class="nav-link flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                  {% if request.path == href %}bg-white/15 text-white active{% else %}text-slate-300 hover:bg-white/10 hover:text-white{% endif %}">
+          <i class="ph {{ icon }} text-base"></i>
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
+
+      <!-- Right: Mary's House logo (top right corner) -->
+      <a href="https://www.maryshouse.org.au" target="_blank" class="shrink-0 opacity-90 hover:opacity-100 transition-opacity">
+        <img src="{{ url_for('static', filename='mhs-logo-white.svg') }}"
+             alt="Mary's House Services"
+             class="h-9 w-auto">
+      </a>
+
+    </div>
+  </nav>
+
+  <!-- Page -->
+  <main class="max-w-7xl mx-auto px-5 py-7 page-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-white mt-10 py-5">
+    <div class="max-w-7xl mx-auto px-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="{{ url_for('static', filename='mhs-logo-colour.svg') }}"
+             alt="Mary's House Services" class="h-7 w-auto">
+        <span class="text-xs text-slate-400">FundMatch · Hackathon 2025</span>
+      </div>
+      <div class="flex items-center gap-1 text-amber-500 text-xs">
+        <i class="ph-bold ph-warning text-sm"></i>
+        <span>All drafts require human sign-off before submission</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

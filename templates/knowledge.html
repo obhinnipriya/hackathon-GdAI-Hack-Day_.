@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Base{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-7">
+  <div>
+    <h1 class="text-2xl font-bold text-navy-700 tracking-tight">{{ kb.name }} — Knowledge Base</h1>
+    <p class="text-slate-500 text-sm mt-1">This profile powers all scoring and draft generation. Every claim in a FundMatch draft traces back to this data.</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-3 gap-6">
+
+  <!-- Left: 2 cols -->
+  <div class="col-span-2 space-y-5">
+
+    <!-- Identity card -->
+    <div class="card-hover bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <h2 class="font-bold text-navy-700 mb-5 flex items-center gap-2 text-base">
+        <div class="w-8 h-8 bg-teal/10 rounded-lg flex items-center justify-center">
+          <i class="ph-bold ph-buildings text-teal"></i>
+        </div>
+        Organisation Identity
+      </h2>
+      <dl class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+        {% for label, value in [
+          ('ACNC Registration', kb.acnc_registration),
+          ('ABN', kb.abn),
+          ('Charity Type', kb.charity_type),
+          ('Founded', kb.founded),
+          ('Location', kb.location),
+          ('Annual Revenue', kb.financials.annual_revenue_band),
+        ] %}
+        <div>
+          <dt class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{{ label }}</dt>
+          <dd class="font-semibold text-navy-700">{{ value }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+      <div class="mt-5 pt-5 border-t border-slate-100">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Mission</div>
+        <p class="text-sm text-slate-600 leading-relaxed">{{ kb.mission }}</p>
+      </div>
+    </div>
+
+    <!-- Programs -->
+    <div class="card-hover bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <h2 class="font-bold text-navy-700 mb-5 flex items-center gap-2 text-base">
+        <div class="w-8 h-8 bg-teal/10 rounded-lg flex items-center justify-center">
+          <i class="ph-bold ph-heart text-teal"></i>
+        </div>
+        Programs
+      </h2>
+      {% for key, prog in kb.programs.items() %}
+      <div class="{% if not loop.last %}mb-6 pb-6 border-b border-slate-100{% endif %}">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <h3 class="font-bold text-navy-700 text-sm mb-1">{{ prog.name }}</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">{{ prog.description }}</p>
+          </div>
+          <div class="flex gap-3 shrink-0">
+            <div class="bg-teal/10 rounded-xl px-4 py-2.5 text-center min-w-[70px]">
+              <div class="text-xl font-bold text-teal">{{ prog.clients_per_year }}</div>
+              <div class="text-[10px] text-slate-500 font-medium">clients/yr</div>
+            </div>
+            {% if prog.avg_stay_days is defined %}
+            <div class="bg-navy/5 rounded-xl px-4 py-2.5 text-center min-w-[70px]">
+              <div class="text-xl font-bold text-navy-700">{{ prog.avg_stay_days }}</div>
+              <div class="text-[10px] text-slate-500 font-medium">avg days</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Past funded projects -->
+    <div class="card-hover bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <h2 class="font-bold text-navy-700 mb-5 flex items-center gap-2 text-base">
+        <div class="w-8 h-8 bg-teal/10 rounded-lg flex items-center justify-center">
+          <i class="ph-bold ph-trophy text-teal"></i>
+        </div>
+        Past Funded Projects
+      </h2>
+      <div class="space-y-3">
+        {% for p in kb.past_funded_projects %}
+        <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-teal/30 transition-colors duration-150">
+          <div class="text-center shrink-0 w-16">
+            <div class="text-base font-bold text-teal">${{ '{:,}'.format(p.amount) }}</div>
+            <div class="text-[10px] text-slate-400 font-medium">{{ p.year }}</div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-navy-700 text-sm">{{ p.title }}</div>
+            <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+              <i class="ph ph-buildings text-[11px]"></i> {{ p.funder }}
+            </div>
+            <div class="text-xs text-green-700 mt-1.5 flex items-center gap-1 font-medium">
+              <i class="ph-bold ph-check-circle text-green-500"></i> {{ p.outcome }}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right sidebar -->
+  <div class="space-y-5">
+
+    <div class="card-hover bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+      <h3 class="font-bold text-navy-700 text-sm mb-4 flex items-center gap-2">
+        <i class="ph ph-users text-teal"></i> Organisation Capacity
+      </h3>
+      <div class="space-y-3">
+        {% for label, value, icon in [
+          ('Staff (FTE)', kb.financials.staff_fte, 'ph-person'),
+          ('Volunteers', kb.financials.volunteers, 'ph-hands-clapping'),
+          ('Size category', kb.financials.size_category, 'ph-buildings'),
+        ] %}
+        <div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+          <span class="text-sm text-slate-500 flex items-center gap-1.5">
+            <i class="ph {{ icon }} text-slate-300"></i> {{ label }}
+          </span>
+          <span class="font-bold text-navy-700 text-sm capitalize">{{ value }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card-hover bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+      <h3 class="font-bold text-navy-700 text-sm mb-4 flex items-center gap-2">
+        <i class="ph ph-map-pin text-teal"></i> Client Demographics
+      </h3>
+      <p class="text-xs font-semibold text-slate-600 mb-1">{{ kb.demographics.primary }}</p>
+      <p class="text-xs text-slate-400 mb-3 flex items-center gap-1">
+        <i class="ph ph-map-trifold text-[11px]"></i> {{ kb.demographics.geography }}
+      </p>
+      <div class="space-y-1.5">
+        {% for factor in kb.demographics.vulnerability_factors %}
+        <div class="flex items-start gap-2 text-xs text-slate-600">
+          <i class="ph-bold ph-dot-outline text-teal mt-0.5 text-[10px]"></i> {{ factor }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card-hover bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+      <h3 class="font-bold text-navy-700 text-sm mb-4 flex items-center gap-2">
+        <i class="ph ph-tag text-teal"></i> Scoring Keywords
+      </h3>
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Cause</div>
+      <div class="flex flex-wrap gap-1.5 mb-4">
+        {% for kw in kb.scoring_keywords.cause %}
+        <span class="badge bg-teal/10 text-teal-700 border border-teal/20">{{ kw }}</span>
+        {% endfor %}
+      </div>
+      <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Project Type</div>
+      <div class="flex flex-wrap gap-1.5">
+        {% for kw in kb.scoring_keywords.project_type %}
+        <span class="badge bg-navy/5 text-navy-700 border border-navy/10">{{ kw }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+# Environment variables — NEVER commit this (contains API keys)
+.env
+
+# Database — regenerated automatically on first run
+fundmatch.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

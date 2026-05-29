@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<!-- Page header -->
+<div class="flex items-start justify-between mb-7">
+  <div>
+    <h1 class="text-2xl font-bold text-navy-700 tracking-tight">GrantPilot Dashboard</h1>
+    <p class="text-slate-500 text-sm mt-1">Weekly ranked grant prospects · Scored automatically against Mary's House profile</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <button onclick="sendDigest()"
+       class="flex items-center gap-2 bg-navy-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-navy-800 transition-all duration-150 shadow-sm" id="digest-btn">
+      <i class="ph-bold ph-envelope"></i> Send Digest
+    </button>
+    <a href="/search"
+       class="flex items-center gap-2 bg-teal text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-teal-600 transition-all duration-150 shadow-sm hover:shadow-md">
+      <i class="ph-bold ph-magnifying-glass"></i>
+      Run New Search
+    </a>
+  </div>
+</div>
+
+
+<!-- Stats row -->
+<div class="grid grid-cols-4 gap-4 mb-7">
+  {% for value, label, icon, border, text in [
+    (total_count,  'Grants discovered', 'ph-database',       'border-slate-100', 'text-navy-700'),
+    (green_count,  'Escalate to staff', 'ph-check-circle',   'border-green-100', 'text-green-700'),
+    (yellow_count, 'Monitoring',        'ph-eye',            'border-amber-100', 'text-amber-600'),
+    (archived_count,'Auto-archived',    'ph-archive',        'border-slate-100', 'text-slate-400'),
+  ] %}
+  <div class="card-hover bg-white rounded-2xl border {{ border }} p-5 shadow-sm">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="text-3xl font-bold {{ text }}">{{ value }}</div>
+        <div class="text-xs text-slate-500 mt-1 font-medium">{{ label }}</div>
+      </div>
+      <div class="w-9 h-9 rounded-xl
+        {% if 'green' in border %}bg-green-50{% elif 'amber' in border %}bg-amber-50{% else %}bg-slate-50{% endif %}
+        flex items-center justify-center">
+        <i class="ph-bold {{ icon }} {{ text }} text-base"></i>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Next deadline banner if exists -->
+{% if next_deadline %}
+<div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 mb-7 flex items-center gap-3">
+  <i class="ph-bold ph-clock-countdown text-amber-500 text-xl"></i>
+  <div>
+    <span class="font-semibold text-amber-800 text-sm">Next deadline: {{ next_deadline.date }}</span>
+    <span class="text-amber-600 text-sm ml-2">— {{ next_deadline.title[:60] }}{% if next_deadline.title|length > 60 %}…{% endif %}</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Main content grid -->
+<div class="grid grid-cols-3 gap-6">
+
+  <!-- Prospects table -->
+  <div class="col-span-2">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-bold text-navy-700 text-base flex items-center gap-2">
+        <i class="ph ph-list-checks text-teal"></i> Ranked Prospects
+      </h2>
+      <a href="/grants" class="text-xs font-semibold text-teal hover:text-teal-600 flex items-center gap-1 transition-colors">
+        View all <i class="ph ph-arrow-right"></i>
+      </a>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-100">
+            <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Grant</th>
+            <th class="text-right px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Amount</th>
+            <th class="text-left px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Deadline</th>
+            <th class="text-center px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fit</th>
+            <th class="text-right px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          {% for g in grants %}
+          <tr class="row-hover">
+            <td class="px-5 py-3.5">
+              <div class="font-semibold text-navy-700 text-[13px] leading-snug">
+                {{ g.title[:48] }}{% if g.title|length > 48 %}…{% endif %}
+              </div>
+              <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                <i class="ph ph-buildings text-[11px]"></i>
+                {{ g.funder[:42] }}{% if g.funder|length > 42 %}…{% endif %}
+              </div>
+            </td>
+            <td class="px-4 py-3.5 text-right">
+              {% if g.amount_max %}
+              <span class="text-sm font-semibold text-slate-700">${{ '{:,}'.format(g.amount_max) }}</span>
+              {% else %}
+              <span class="text-slate-300 text-sm">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3.5">
+              {% if g.deadline and g.deadline not in ['ongoing', 'rolling', ''] %}
+              <span class="text-[13px] text-slate-600 deadline-val" data-deadline="{{ g.deadline }}">{{ g.deadline }}</span>
+              {% else %}
+              <span class="badge bg-slate-100 text-slate-400">
+                <i class="ph ph-infinity text-[10px]"></i> Ongoing
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3.5 text-center">
+              <span class="badge text-xs font-bold
+                {% if g.fit_band == 'green' %}bg-green-100 text-green-800
+                {% elif g.fit_band == 'yellow' %}bg-amber-100 text-amber-700
+                {% else %}bg-slate-100 text-slate-400{% endif %}">
+                {% if g.fit_band == 'green' %}<i class="ph-bold ph-check text-[10px]"></i>{% endif %}
+                {{ g.fit_score }}
+              </span>
+            </td>
+            <td class="px-5 py-3.5 text-right">
+              <div class="flex items-center justify-end gap-2">
+                {% if g.fit_band == 'green' %}
+                <button onclick="sendAlert({{ g.id }}, this)"
+                   class="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:border-teal hover:text-teal font-medium transition-all duration-150 flex items-center gap-1"
+                   title="Email staff alert">
+                  <i class="ph ph-envelope text-[11px]"></i>
+                </button>
+                {% endif %}
+                <a href="/grant/{{ g.id }}"
+                   class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-teal hover:text-teal font-medium transition-all duration-150">
+                  View
+                </a>
+                {% if g.fit_band in ['green', 'yellow'] %}
+                <a href="/draft/{{ g.id }}"
+                   class="text-xs px-3 py-1.5 rounded-lg bg-teal text-white hover:bg-teal-600 font-semibold transition-all duration-150 flex items-center gap-1">
+                  <i class="ph-bold ph-pencil-line text-[11px]"></i> Draft
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="px-5 py-12 text-center">
+              <i class="ph ph-magnifying-glass text-3xl text-slate-200 block mb-2"></i>
+              <span class="text-slate-400 text-sm">No prospects yet.</span>
+              <a href="/search" class="text-teal text-sm font-medium ml-1 hover:underline">Run a search →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Philanthropic signals sidebar -->
+  <div class="space-y-4">
+
+    <div class="flex items-center justify-between">
+      <h2 class="font-bold text-navy-700 text-base flex items-center gap-2">
+        <i class="ph ph-broadcast text-teal"></i> Philanthropic Signals
+      </h2>
+      <a href="/signals" class="text-xs font-semibold text-teal hover:text-teal-600 flex items-center gap-1 transition-colors">
+        View all <i class="ph ph-arrow-right"></i>
+      </a>
+    </div>
+
+    {% for signal in donors[:3] %}
+    <div class="card-hover bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+      <div class="flex items-start gap-3">
+        <div class="text-xl w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center shrink-0 border border-slate-100">
+          {{ signal.icon }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+            <span class="font-bold text-navy-700 text-[13px]">{{ signal.actor }}</span>
+            <a href="{{ signal.source_url }}" target="_blank" rel="noopener noreferrer"
+               class="badge bg-blue-50 text-blue-600 border border-blue-100 text-[10px] hover:bg-blue-100 hover:border-blue-300 transition-colors duration-150">
+              <i class="ph ph-arrow-square-out text-[9px]"></i> {{ signal.platform }}
+            </a>
+          </div>
+          <p class="text-[12px] text-slate-500 leading-relaxed italic line-clamp-2">
+            "{{ signal.signal[:110] }}{% if signal.signal|length > 110 %}…{% endif %}"
+          </p>
+          <div class="text-[11px] text-teal font-semibold mt-1.5 flex items-center gap-1">
+            <i class="ph-bold ph-arrow-right text-[10px]"></i> {{ signal.action }}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <a href="/signals"
+       class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-dashed border-teal/30 text-teal text-sm font-semibold hover:border-teal hover:bg-teal/5 transition-all duration-150">
+      <i class="ph ph-broadcast"></i> View All Signals
+    </a>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 bg-navy-700 text-white px-5 py-3.5 rounded-xl shadow-2xl text-sm font-medium
+                        flex items-center gap-3 opacity-0 translate-y-3 transition-all duration-300 pointer-events-none z-50">
+  <i id="toast-icon" class="ph-bold ph-check-circle text-teal text-lg"></i>
+  <div>
+    <div id="toast-title" class="font-bold"></div>
+    <div id="toast-sub" class="text-slate-400 text-xs mt-0.5"></div>
+  </div>
+</div>
+
+<script>
+function showToast(title, sub='', isError=false) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-sub').textContent = sub;
+  document.getElementById('toast-icon').className = isError
+    ? 'ph-bold ph-x-circle text-red-400 text-lg'
+    : 'ph-bold ph-check-circle text-teal text-lg';
+  t.style.opacity = '1'; t.style.transform = 'translateY(0)';
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(12px)'; }, 3500);
+}
+
+function sendAlert(grantId, btn) {
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="ph ph-spinner-gap text-[11px]" style="animation:spin 1s linear infinite"></i>';
+  btn.disabled = true;
+  fetch(`/email/alert/${grantId}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      btn.innerHTML = orig; btn.disabled = false;
+      if (d.ok) showToast('Alert email sent!', `Delivered to ${d.to}`);
+      else showToast('Email not sent', 'Add your Resend API key to enable alerts', true);
+    })
+    .catch(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+
+function sendDigest() {
+  const btn = document.getElementById('digest-btn');
+  btn.innerHTML = '<i class="ph-bold ph-envelope"></i> Sending…';
+  btn.disabled = true;
+  fetch('/email/digest', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      btn.innerHTML = '<i class="ph-bold ph-envelope"></i> Send Digest';
+      btn.disabled = false;
+      if (d.ok) showToast('Weekly digest sent!', `${d.count} prospects delivered to ${d.to}`);
+      else showToast('Email not sent', 'Add your Resend API key first', true);
+    })
+    .catch(() => { btn.innerHTML = '<i class="ph-bold ph-envelope"></i> Send Digest'; btn.disabled = false; });
+}
+
+// Deadline countdown
+document.querySelectorAll('.deadline-val').forEach(el => {
+  const dl = el.dataset.deadline;
+  if (!dl) return;
+  try {
+    const days = Math.ceil((new Date(dl) - new Date()) / 86400000);
+    if (days < 0) { el.textContent = 'Closed'; el.style.color = '#94A3B8'; }
+    else if (days <= 7) { el.textContent = days+'d left'; el.style.color='#DC2626'; el.style.fontWeight='700'; }
+    else if (days <= 30) { el.textContent = days+'d left'; el.style.color='#D97706'; el.style.fontWeight='600'; }
+    else { el.textContent = days+'d'; }
+    el.title = `Deadline: ${dl}`;
+  } catch(e) {}
+});
+
+</script>
+{% endblock %}
